@@ -1,0 +1,51 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Spring Boot
+spring.log
+
+# Environment files
+.env
+.env.*
+
+# Application secrets / local overrides
+application-local.yml
+application-local.yaml
+application-local.properties
+application-secret.yml
+application-secret.yaml
+application-secret.properties
+
+# Mac/Linux temp files
+*.swp
+*.swo
+
+# Java
+*.class
+
+# Docker
+docker-data/
+postgres_data/
+
+# Optional: generated files
+bin/
+build/

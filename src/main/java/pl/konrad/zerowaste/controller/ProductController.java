@@ -1,0 +1,69 @@
+package pl.konrad.zerowaste.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import pl.konrad.zerowaste.domain.ProductStatus;
+import pl.konrad.zerowaste.domain.ProductUnit;
+import pl.konrad.zerowaste.domain.StorageLocation;
+import pl.konrad.zerowaste.dto.ProductRequest;
+import pl.konrad.zerowaste.dto.ProductResponse;
+import pl.konrad.zerowaste.service.ProductService;
+
+import java.time.LocalDate;
+
+@RestController
+@RequestMapping("/api/products")
+@RequiredArgsConstructor
+public class ProductController {
+
+    private final ProductService productService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductResponse createProduct(@Valid @RequestBody ProductRequest request) {
+        return productService.createProduct(request);
+    }
+
+    @GetMapping
+    public Page<ProductResponse> getAllProducts(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) StorageLocation location,
+            @RequestParam(required = false) ProductUnit unit,
+            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "10") int size
+    ) {
+        return productService.getAllProducts(
+                name,
+                location,
+                unit,
+                status,
+                sortBy,
+                direction,
+                page,
+                size
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ProductResponse getProductById(@PathVariable Long id) {
+        return productService.getProductById(id);
+    }
+
+    @PutMapping("/{id}")
+    public ProductResponse updateProduct(@PathVariable Long id,
+                                         @Valid @RequestBody ProductRequest request) {
+        return productService.updateProduct(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+    }
+}
