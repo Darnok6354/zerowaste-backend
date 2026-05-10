@@ -36,6 +36,10 @@ public class Product {
     @Column(nullable = false)
     private StorageLocation location;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_profile_id", nullable = false)
+    private UserProfile userProfile;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -43,4 +47,6 @@ public class Product {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+
 }

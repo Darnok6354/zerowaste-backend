@@ -10,6 +10,11 @@ import java.time.LocalDate;
 
 public class ProductSpecifications {
 
+    public static Specification<Product> belongsToUser(Long userProfileId) {
+        return (root, query, cb) ->
+                userProfileId == null ? null : cb.equal(root.get("userProfile").get("id"), userProfileId);
+    }
+
     public static Specification<Product> hasLocation(StorageLocation location) {
         return (root, query, cb) ->
                 location == null ? null : cb.equal(root.get("location"), location);
