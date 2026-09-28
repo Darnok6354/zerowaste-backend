@@ -1,29 +1,23 @@
 package pl.konrad.zerowaste.dto;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import pl.konrad.zerowaste.domain.ProductUnit;
 import pl.konrad.zerowaste.domain.StorageLocation;
-
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record ProductRequest(
+        @NotNull(message = "Master product ID cannot be null")
+        Long masterProductId, // Zastępuje pole 'name'
 
-        @NotBlank(message = "Name is required")
-        String name,
+        @NotNull
+        Double quantity,
 
-        @NotNull(message = "Quantity is required")
-        @DecimalMin(value = "0.01", message = "Quantity must be greater than 0")
-        BigDecimal quantity,
-
-        @NotNull(message = "Unit is required")
+        @NotNull
         ProductUnit unit,
 
         LocalDate expirationDate,
 
-        @NotNull(message = "Location is required")
-        StorageLocation location
+        @NotNull
+        StorageLocation location // Używamy 'location' zgodnie z Twoim wcześniejszym kodem
 ) {
 }

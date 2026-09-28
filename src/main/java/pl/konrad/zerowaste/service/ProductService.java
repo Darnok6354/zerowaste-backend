@@ -8,9 +8,12 @@ import pl.konrad.zerowaste.domain.*;
 import pl.konrad.zerowaste.dto.ProductRequest;
 import pl.konrad.zerowaste.dto.ProductResponse;
 import pl.konrad.zerowaste.exception.ProductNotFoundException;
+import pl.konrad.zerowaste.repository.MasterProductRepository;
 import pl.konrad.zerowaste.repository.ProductRepository;
 import pl.konrad.zerowaste.repository.ProductSpecifications;
-
+import pl.konrad.zerowaste.dto.ProductSummaryResponse;
+import pl.konrad.zerowaste.dto.UpdateProductLifecycleRequest;
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 
 @Service
@@ -18,13 +21,18 @@ import java.time.LocalDate;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final MasterProductRepository masterProductRepository; // <-- Dodane repozytorium słownika
     private final CurrentUserService currentUserService;
 
     public ProductResponse createProduct(ProductRequest request) {
         UserProfile currentUser = currentUserService.getCurrentUser();
 
+        // Pobranie produktu ze słownika na podstawie ID przesłanego z frontendu
+        MasterProduct masterProduct = masterProductRepository.findById(request.masterProductId())
+                .orElseThrow(() -> new RuntimeException("Master product not found with ID: " + request.masterProductId()));
+
         Product product = Product.builder()
-                .name(request.name())
+                .masterProduct(masterProduct) // Zastępuje dotychczasowe .name(request.name())
                 .quantity(request.quantity())
                 .unit(request.unit())
                 .expirationDate(request.expirationDate())
@@ -49,7 +57,8 @@ public class ProductService {
 
         Specification<Product> specification = Specification
                 .where(ProductSpecifications.belongsToUser(currentUser.getId()))
-                .and(ProductSpecifications.nameContains(name))
+                .and(ProductSpecifications.hasLifecycleStatus(ProductLifecycleStatus.ACTIVE))
+                .and(ProductSpecifications.nameContains(name)) // <-- Wymaga małej zmiany w ProductSpecifications (wyjaśnienie poniżej)
                 .and(ProductSpecifications.hasLocation(location))
                 .and(ProductSpecifications.hasUnit(unit))
                 .and(ProductSpecifications.hasStatus(status));
@@ -75,7 +84,13 @@ public class ProductService {
         Product product = productRepository.findByIdAndUserProfile_Id(id, currentUser.getId())
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
-        product.setName(request.name());
+        // Aktualizacja powiązania ze słownikiem (jeśli użytkownik zmienił typ produktu)
+        if (!product.getMasterProduct().getId().equals(request.masterProductId())) {
+            MasterProduct newMasterProduct = masterProductRepository.findById(request.masterProductId())
+                    .orElseThrow(() -> new RuntimeException("Master product not found with ID: " + request.masterProductId()));
+            product.setMasterProduct(newMasterProduct);
+        }
+
         product.setQuantity(request.quantity());
         product.setUnit(request.unit());
         product.setExpirationDate(request.expirationDate());
@@ -94,14 +109,21 @@ public class ProductService {
     }
 
     private ProductResponse mapToResponse(Product product) {
+        // Zaktualizowane mapowanie uwzględniające dane z encji MasterProduct
         return new ProductResponse(
                 product.getId(),
-                product.getName(),
+                product.getMasterProduct().getId(),
+                product.getMasterProduct().getName(),
+                product.getMasterProduct().getCategory(),
+                product.getMasterProduct().getImageUrl(),
                 product.getQuantity(),
                 product.getUnit(),
                 product.getExpirationDate(),
                 product.getLocation(),
                 calculateStatus(product),
+                product.getLifecycleStatus(),
+                product.getWasteReason(),
+                product.getStatusChangedAt(),
                 product.getCreatedAt()
         );
     }
@@ -127,7 +149,7 @@ public class ProductService {
 
     private Sort buildSort(String sortBy, String direction) {
         String sortField = switch (sortBy == null ? "" : sortBy) {
-            case "name" -> "name";
+            case "name" -> "masterProduct.name"; // <-- Kluczowa zmiana: sortowanie po złączonej tabeli
             case "quantity" -> "quantity";
             case "expirationDate" -> "expirationDate";
             case "location" -> "location";
@@ -138,5 +160,52 @@ public class ProductService {
                 "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         return Sort.by(sortDirection, sortField);
+    }
+
+    public ProductSummaryResponse getProductsSummary() {
+        // Kod pozostaje bez zmian
+        UserProfile currentUser = currentUserService.getCurrentUser();
+
+        LocalDate today = LocalDate.now();
+        LocalDate expiringSoonDate = today.plusDays(3);
+
+        long total = productRepository.countByUserProfile_Id(currentUser.getId());
+        long expired = productRepository.countByUserProfile_IdAndExpirationDateBefore(currentUser.getId(), today);
+        long expiringSoon = productRepository.countByUserProfile_IdAndExpirationDateBetween(
+                currentUser.getId(),
+                today,
+                expiringSoonDate
+        );
+        long freshWithDate = productRepository.countByUserProfile_IdAndExpirationDateAfter(currentUser.getId(), expiringSoonDate);
+        long freshWithoutDate = productRepository.countByUserProfile_IdAndExpirationDateIsNull(currentUser.getId());
+
+        long fresh = freshWithDate + freshWithoutDate;
+
+        return new ProductSummaryResponse(
+                total,
+                fresh,
+                expiringSoon,
+                expired
+        );
+    }
+
+    public ProductResponse updateProductLifecycle(Long id, UpdateProductLifecycleRequest request) {
+        // Kod pozostaje bez zmian
+        UserProfile currentUser = currentUserService.getCurrentUser();
+
+        Product product = productRepository.findByIdAndUserProfile_Id(id, currentUser.getId())
+                .orElseThrow(() -> new ProductNotFoundException(id));
+
+        product.setLifecycleStatus(request.lifecycleStatus());
+        product.setStatusChangedAt(LocalDateTime.now());
+
+        if (request.lifecycleStatus() == ProductLifecycleStatus.WASTED) {
+            product.setWasteReason(request.wasteReason());
+        } else {
+            product.setWasteReason(null);
+        }
+
+        Product updatedProduct = productRepository.save(product);
+        return mapToResponse(updatedProduct);
     }
 }

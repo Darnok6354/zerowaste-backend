@@ -11,8 +11,9 @@ import pl.konrad.zerowaste.domain.StorageLocation;
 import pl.konrad.zerowaste.dto.ProductRequest;
 import pl.konrad.zerowaste.dto.ProductResponse;
 import pl.konrad.zerowaste.service.ProductService;
+import pl.konrad.zerowaste.dto.ProductSummaryResponse;
+import pl.konrad.zerowaste.dto.UpdateProductLifecycleRequest;
 
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/products")
@@ -49,6 +50,10 @@ public class ProductController {
                 size
         );
     }
+    @GetMapping("/summary")
+    public ProductSummaryResponse getProductsSummary() {
+        return productService.getProductsSummary();
+    }
 
     @GetMapping("/{id}")
     public ProductResponse getProductById(@PathVariable Long id) {
@@ -66,4 +71,12 @@ public class ProductController {
     public void deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
     }
+
+    @PatchMapping("/{id}/lifecycle")
+    public ProductResponse updateProductLifecycle(@PathVariable Long id,
+                                                  @Valid @RequestBody UpdateProductLifecycleRequest request) {
+        return productService.updateProductLifecycle(id, request);
+    }
+
+
 }

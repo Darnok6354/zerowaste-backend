@@ -5,6 +5,7 @@ import pl.konrad.zerowaste.domain.Product;
 import pl.konrad.zerowaste.domain.ProductStatus;
 import pl.konrad.zerowaste.domain.ProductUnit;
 import pl.konrad.zerowaste.domain.StorageLocation;
+import pl.konrad.zerowaste.domain.ProductLifecycleStatus;
 
 import java.time.LocalDate;
 
@@ -59,5 +60,10 @@ public class ProductSpecifications {
                 );
             };
         };
+    }
+
+    public static Specification<Product> hasLifecycleStatus(ProductLifecycleStatus lifecycleStatus) {
+        return (root, query, cb) ->
+                lifecycleStatus == null ? null : cb.equal(root.get("lifecycleStatus"), lifecycleStatus);
     }
 }
