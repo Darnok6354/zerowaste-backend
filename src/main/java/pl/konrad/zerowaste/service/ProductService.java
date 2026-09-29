@@ -13,6 +13,8 @@ import pl.konrad.zerowaste.repository.ProductRepository;
 import pl.konrad.zerowaste.repository.ProductSpecifications;
 import pl.konrad.zerowaste.dto.ProductSummaryResponse;
 import pl.konrad.zerowaste.dto.UpdateProductLifecycleRequest;
+import pl.konrad.zerowaste.repository.ProductHistoryRepository;
+
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 
@@ -23,6 +25,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final MasterProductRepository masterProductRepository; // <-- Dodane repozytorium słownika
     private final CurrentUserService currentUserService;
+    private final ProductHistoryRepository productHistoryRepository; // <-- DODANE
 
     public ProductResponse createProduct(ProductRequest request) {
         UserProfile currentUser = currentUserService.getCurrentUser();
@@ -188,7 +191,6 @@ public class ProductService {
     }
 
     public ProductResponse updateProductLifecycle(Long id, UpdateProductLifecycleRequest request) {
-        // Kod pozostaje bez zmian
         UserProfile currentUser = currentUserService.getCurrentUser();
 
         Product product = productRepository.findByIdAndUserProfile_Id(id, currentUser.getId())
@@ -203,7 +205,26 @@ public class ProductService {
             product.setWasteReason(null);
         }
 
+        // Zapisz zaktualizowany produkt w głównej tabeli
         Product updatedProduct = productRepository.save(product);
+
+        // --- NOWOŚĆ: Zapisz do historii, jeśli produkt został zjedzony lub wyrzucony ---
+        if (request.lifecycleStatus() == ProductLifecycleStatus.CONSUMED ||
+                request.lifecycleStatus() == ProductLifecycleStatus.WASTED) {
+
+            ProductHistory historyRecord = ProductHistory.builder()
+                    .userProfile(currentUser)
+                    .masterProduct(updatedProduct.getMasterProduct())
+                    .lifecycleStatus(request.lifecycleStatus())
+                    .wasteReason(updatedProduct.getWasteReason())
+                    .quantity(updatedProduct.getQuantity())
+                    .unit(updatedProduct.getUnit())
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            productHistoryRepository.save(historyRecord);
+        }
+
         return mapToResponse(updatedProduct);
     }
 }

@@ -35,7 +35,8 @@ public class MasterProductService {
                 product.getName(),
                 product.getCategory(),
                 product.getImageUrl(),
-                product.getBarcode()
+                product.getBarcode(),
+                product.getDefaultUnit()
         );
     }
 }

@@ -28,4 +28,8 @@ public class MasterProduct {
 
     @Column(name = "barcode")
     private String barcode; // Przygotowanie pod skaner w aplikacji mobilnej
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "default_unit")
+    private ProductUnit defaultUnit;
 }
