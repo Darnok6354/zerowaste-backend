@@ -27,10 +27,11 @@ public class ProductSpecifications {
     }
 
     public static Specification<Product> nameContains(String name) {
-        return (root, query, cb) ->
-                name == null || name.isBlank()
-                        ? null
-                        : cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%");
+        return (root, query, cb) -> {
+            if (name == null || name.isBlank()) return null;
+            // POPRAWIONA LINIA:
+            return cb.like(cb.lower(root.join("masterProduct").get("name")), "%" + name.toLowerCase() + "%");
+        };
     }
 
     public static Specification<Product> hasStatus(ProductStatus status) {

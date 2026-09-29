@@ -149,16 +149,14 @@ public class ProductService {
 
     private Sort buildSort(String sortBy, String direction) {
         String sortField = switch (sortBy == null ? "" : sortBy) {
-            case "name" -> "masterProduct.name"; // <-- Kluczowa zmiana: sortowanie po złączonej tabeli
+            case "name" -> "masterProduct.name"; // <-- To jest kluczowe przy sortowaniu
             case "quantity" -> "quantity";
             case "expirationDate" -> "expirationDate";
             case "location" -> "location";
             default -> "createdAt";
         };
 
-        Sort.Direction sortDirection =
-                "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
-
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
         return Sort.by(sortDirection, sortField);
     }
 
