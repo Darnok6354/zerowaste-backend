@@ -1,4 +1,4 @@
-TRUNCATE TABLE master_products CASCADE;
+TRUNCATE TABLE master_products RESTART IDENTITY CASCADE;
 
 INSERT INTO master_products (name, category, image_url, default_unit) VALUES
 -- ==========================================

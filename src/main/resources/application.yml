@@ -25,9 +25,11 @@ spring:
           jwk-set-uri: https://mpkuposrgoodxvqrticj.supabase.co:/auth/v1/.well-known/jwks.json
           jws-algorithms: ES256
 
+
+
   sql:
     init:
-      mode: always
+      mode: never
 
 server:
   port: 8080
@@ -36,3 +38,8 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+
+spoonacular:
+  api:
+    url: https://api.spoonacular.com
+    key: ${SPOONACULAR_API_KEY}

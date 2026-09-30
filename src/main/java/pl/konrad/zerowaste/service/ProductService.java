@@ -8,6 +8,7 @@ import pl.konrad.zerowaste.domain.*;
 import pl.konrad.zerowaste.dto.ProductRequest;
 import pl.konrad.zerowaste.dto.ProductResponse;
 import pl.konrad.zerowaste.exception.ProductNotFoundException;
+import pl.konrad.zerowaste.exception.ResourceNotFoundException;
 import pl.konrad.zerowaste.repository.MasterProductRepository;
 import pl.konrad.zerowaste.repository.ProductRepository;
 import pl.konrad.zerowaste.repository.ProductSpecifications;
@@ -32,7 +33,7 @@ public class ProductService {
 
         // Pobranie produktu ze słownika na podstawie ID przesłanego z frontendu
         MasterProduct masterProduct = masterProductRepository.findById(request.masterProductId())
-                .orElseThrow(() -> new RuntimeException("Master product not found with ID: " + request.masterProductId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Master product not found with ID: " + request.masterProductId()));
 
         Product product = Product.builder()
                 .masterProduct(masterProduct) // Zastępuje dotychczasowe .name(request.name())

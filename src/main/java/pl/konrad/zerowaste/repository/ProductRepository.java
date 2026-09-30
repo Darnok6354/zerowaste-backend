@@ -1,5 +1,7 @@
 package pl.konrad.zerowaste.repository;
 
+import pl.konrad.zerowaste.domain.ProductLifecycleStatus;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -8,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import pl.konrad.zerowaste.domain.Product;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
@@ -27,4 +30,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     long countByUserProfile_IdAndExpirationDateAfter(Long userProfileId, LocalDate date);
 
     long countByUserProfile_IdAndExpirationDateIsNull(Long userProfileId);
+
+    // Pobiera wszystkie produkty użytkownika o określonym statusie cyklu życia
+    List<Product> findAllByUserProfile_IdAndLifecycleStatus(Long userId, ProductLifecycleStatus lifecycleStatus);
 }
