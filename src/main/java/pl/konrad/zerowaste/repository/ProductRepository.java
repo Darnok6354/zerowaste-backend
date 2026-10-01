@@ -8,6 +8,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import pl.konrad.zerowaste.domain.Product;
+import pl.konrad.zerowaste.domain.ProductStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,4 +34,11 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     // Pobiera wszystkie produkty użytkownika o określonym statusie cyklu życia
     List<Product> findAllByUserProfile_IdAndLifecycleStatus(Long userId, ProductLifecycleStatus lifecycleStatus);
+
+    // Pobiera produkty użytkownika po statusie cyklu życia (np. ACTIVE) oraz statusie przydatności (np. EXPIRING_SOON)
+    List<Product> findAllByUserProfile_IdAndLifecycleStatusAndStatus(
+            Long userId,
+            ProductLifecycleStatus lifecycleStatus,
+            ProductStatus status
+    );
 }

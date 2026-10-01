@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import pl.konrad.zerowaste.domain.Product;
 import pl.konrad.zerowaste.domain.ProductLifecycleStatus;
+import pl.konrad.zerowaste.domain.ProductStatus;
 import pl.konrad.zerowaste.domain.UserProfile;
 import pl.konrad.zerowaste.dto.spoonacular.SpoonacularRecipeDto;
 import pl.konrad.zerowaste.repository.ProductRepository;
@@ -42,31 +43,59 @@ public class RecipeService {
     public List<SpoonacularRecipeDto> getRecipesBasedOnInventory() {
         UserProfile currentUser = currentUserService.getCurrentUser();
 
-        // 1. Pobieramy z lodówki tylko "AKTYWNE" produkty
-        List<Product> userProducts = productRepository
-                .findAllByUserProfile_IdAndLifecycleStatus(currentUser.getId(), ProductLifecycleStatus.ACTIVE);
+        // 1. Priorytet #1: Pobieramy produkty z lodówki (ACTIVE), które zaraz się zepsują (EXPIRING_SOON)
+        List<Product> expiringProducts = productRepository
+                .findAllByUserProfile_IdAndLifecycleStatusAndStatus(
+                        currentUser.getId(),
+                        ProductLifecycleStatus.ACTIVE,
+                        ProductStatus.EXPIRING_SOON
+                );
 
-        // 2. Wyciągamy angielskie nazwy ze słownika i łączymy je przecinkami (np. "milk,egg,apple")
-        String ingredientsParam = userProducts.stream()
-                .map(p -> p.getMasterProduct().getName())
-                .distinct() // Pomijamy powtórzenia (np. jeśli użytkownik ma 2x mleko)
-                .collect(Collectors.joining(","));
+        // --- DIAGNOSTYKA KROK 1: Czy baza coś zwraca? ---
+        System.out.println("DEBUG: ID Użytkownika = " + currentUser.getId());
+        System.out.println("DEBUG: Znaleziono EXPIRING = " + expiringProducts.size());
 
-        // Jeśli lodówka jest pusta, nie wysyłamy zapytania do API, żeby nie marnować limitu
-        if (ingredientsParam.isBlank()) {
+        List<Product> freshProducts = productRepository
+                .findAllByUserProfile_IdAndLifecycleStatusAndStatus(
+                        currentUser.getId(),
+                        ProductLifecycleStatus.ACTIVE,
+                        ProductStatus.FRESH
+                );
+
+        System.out.println("DEBUG: Znaleziono FRESH = " + freshProducts.size());
+
+        String ingredientsParam;
+
+        if (!expiringProducts.isEmpty()) {
+            ingredientsParam = expiringProducts.stream()
+                    .map(p -> p.getMasterProduct().getName())
+                    .distinct()
+                    .collect(Collectors.joining(","));
+            // --- DIAGNOSTYKA KROK 2: Jaki string trafia do API? ---
+            System.out.println("DEBUG: Wysyłam do API (EXPIRING) = " + ingredientsParam);
+        }
+        // 4. Jeśli nic się nie psuje, szukaj przepisów z normalnych zapasów
+        else if (!freshProducts.isEmpty()) {
+            ingredientsParam = freshProducts.stream()
+                    .map(p -> p.getMasterProduct().getName())
+                    .distinct()
+                    .collect(Collectors.joining(","));
+            System.out.println("DEBUG: Wysyłam do API (EXPIRING) = " + ingredientsParam);
+        }
+        // 5. Lodówka jest pusta (brak ACTIVE produktów)
+        else {
             return List.of();
         }
 
-        // 3. Budujemy i wysyłamy request do API Spoonacular
+        // 6. Wysyłamy zapytanie do API
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/recipes/findByIngredients")
                         .queryParam("ingredients", ingredientsParam)
-                        .queryParam("number", 1)
+                        .queryParam("number", 5)
                         .queryParam("ranking", 2)
-                        // USUNĘLIŚMY STĄD .queryParam("apiKey", apiKey)
                         .build())
-                .header("x-api-key", apiKey) // <-- DODANE: Przekazujemy klucz bezpiecznie w nagłówku
+                .header("x-api-key", apiKey)
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<SpoonacularRecipeDto>>() {});
     }

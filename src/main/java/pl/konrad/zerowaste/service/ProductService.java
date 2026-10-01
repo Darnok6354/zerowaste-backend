@@ -36,17 +36,18 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Master product not found with ID: " + request.masterProductId()));
 
         Product product = Product.builder()
-                .masterProduct(masterProduct) // Zastępuje dotychczasowe .name(request.name())
+                .masterProduct(masterProduct)
                 .quantity(request.quantity())
                 .unit(request.unit())
                 .expirationDate(request.expirationDate())
                 .location(request.location())
                 .userProfile(currentUser)
+                .lifecycleStatus(ProductLifecycleStatus.ACTIVE) // Zawsze ustalamy jako ACTIVE przy dodawaniu
+                .status(calculateStatus(request.expirationDate())) // <-- TUTAJ PINA TWOJĄ LOGIKĘ
                 .build();
 
         return mapToResponse(productRepository.save(product));
     }
-
     public Page<ProductResponse> getAllProducts(
             String name,
             StorageLocation location,
@@ -124,7 +125,7 @@ public class ProductService {
                 product.getUnit(),
                 product.getExpirationDate(),
                 product.getLocation(),
-                calculateStatus(product),
+                product.getStatus(),
                 product.getLifecycleStatus(),
                 product.getWasteReason(),
                 product.getStatusChangedAt(),
@@ -132,18 +133,18 @@ public class ProductService {
         );
     }
 
-    private ProductStatus calculateStatus(Product product) {
-        if (product.getExpirationDate() == null) {
+    private ProductStatus calculateStatus(LocalDate expirationDate) {
+        if (expirationDate == null) {
             return ProductStatus.FRESH;
         }
 
         LocalDate today = LocalDate.now();
-        LocalDate expirationDate = product.getExpirationDate();
 
         if (expirationDate.isBefore(today)) {
             return ProductStatus.EXPIRED;
         }
 
+        // Wszystko, co ma termin ważności w ciągu 3 dni (włącznie z dzisiaj)
         if (!expirationDate.isAfter(today.plusDays(3))) {
             return ProductStatus.EXPIRING_SOON;
         }
