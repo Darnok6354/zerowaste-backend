@@ -37,7 +37,6 @@ public class RecipeService {
 
         // NOWOŚĆ: Ręczne wywołanie statycznego buildera
         this.restClient = RestClient.builder().baseUrl(apiUrl).build();
-        System.out.println("ZACIĄGNIĘTY KLUCZ API: " + apiKey);
     }
 
     public List<SpoonacularRecipeDto> getRecipesBasedOnInventory() {
@@ -52,8 +51,6 @@ public class RecipeService {
                 );
 
         // --- DIAGNOSTYKA KROK 1: Czy baza coś zwraca? ---
-        System.out.println("DEBUG: ID Użytkownika = " + currentUser.getId());
-        System.out.println("DEBUG: Znaleziono EXPIRING = " + expiringProducts.size());
 
         List<Product> freshProducts = productRepository
                 .findAllByUserProfile_IdAndLifecycleStatusAndStatus(
@@ -62,7 +59,6 @@ public class RecipeService {
                         ProductStatus.FRESH
                 );
 
-        System.out.println("DEBUG: Znaleziono FRESH = " + freshProducts.size());
 
         String ingredientsParam;
 
@@ -72,7 +68,6 @@ public class RecipeService {
                     .distinct()
                     .collect(Collectors.joining(","));
             // --- DIAGNOSTYKA KROK 2: Jaki string trafia do API? ---
-            System.out.println("DEBUG: Wysyłam do API (EXPIRING) = " + ingredientsParam);
         }
         // 4. Jeśli nic się nie psuje, szukaj przepisów z normalnych zapasów
         else if (!freshProducts.isEmpty()) {
@@ -80,7 +75,6 @@ public class RecipeService {
                     .map(p -> p.getMasterProduct().getName())
                     .distinct()
                     .collect(Collectors.joining(","));
-            System.out.println("DEBUG: Wysyłam do API (EXPIRING) = " + ingredientsParam);
         }
         // 5. Lodówka jest pusta (brak ACTIVE produktów)
         else {

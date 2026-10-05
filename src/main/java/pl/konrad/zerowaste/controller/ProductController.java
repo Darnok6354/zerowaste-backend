@@ -1,23 +1,23 @@
 package pl.konrad.zerowaste.controller;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.konrad.zerowaste.domain.ProductStatus;
 import pl.konrad.zerowaste.domain.ProductUnit;
 import pl.konrad.zerowaste.domain.StorageLocation;
-import pl.konrad.zerowaste.dto.ProductRequest;
-import pl.konrad.zerowaste.dto.ProductResponse;
+import pl.konrad.zerowaste.dto.*;
 import pl.konrad.zerowaste.service.ProductService;
-import pl.konrad.zerowaste.dto.ProductSummaryResponse;
-import pl.konrad.zerowaste.dto.UpdateProductLifecycleRequest;
 
 
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication") // <-- Musi być identyczna jak wyżej!
 public class ProductController {
 
     private final ProductService productService;
@@ -76,6 +76,12 @@ public class ProductController {
     public ProductResponse updateProductLifecycle(@PathVariable Long id,
                                                   @Valid @RequestBody UpdateProductLifecycleRequest request) {
         return productService.updateProductLifecycle(id, request);
+    }
+
+    @PostMapping("/cook")
+    public ResponseEntity<Void> cookRecipe(@RequestBody CookRecipeRequest request) {
+        productService.cookRecipe(request);
+        return ResponseEntity.ok().build();
     }
 
 

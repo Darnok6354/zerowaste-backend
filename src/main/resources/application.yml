@@ -22,10 +22,15 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: https://mpkuposrgoodxvqrticj.supabase.co:/auth/v1/.well-known/jwks.json
-          jws-algorithms: ES256
+          issuer-uri: https://mpkuposrgoodxvqrticj.supabase.co/auth/v1
+          jwk-set-uri: https://mpkuposrgoodxvqrticj.supabase.co/auth/v1/jwks
 
+  supabase:
+    anon-key: ${SUPABASE_ANON_KEY}
 
+logging:
+  level:
+    org.springframework.security: TRACE
 
   sql:
     init:
@@ -43,3 +48,4 @@ spoonacular:
   api:
     url: https://api.spoonacular.com
     key: ${SPOONACULAR_API_KEY}
+

@@ -5,15 +5,12 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import pl.konrad.zerowaste.domain.*;
-import pl.konrad.zerowaste.dto.ProductRequest;
-import pl.konrad.zerowaste.dto.ProductResponse;
+import pl.konrad.zerowaste.dto.*;
 import pl.konrad.zerowaste.exception.ProductNotFoundException;
 import pl.konrad.zerowaste.exception.ResourceNotFoundException;
 import pl.konrad.zerowaste.repository.MasterProductRepository;
 import pl.konrad.zerowaste.repository.ProductRepository;
 import pl.konrad.zerowaste.repository.ProductSpecifications;
-import pl.konrad.zerowaste.dto.ProductSummaryResponse;
-import pl.konrad.zerowaste.dto.UpdateProductLifecycleRequest;
 import pl.konrad.zerowaste.repository.ProductHistoryRepository;
 
 import java.time.LocalDateTime;
@@ -228,5 +225,46 @@ public class ProductService {
         }
 
         return mapToResponse(updatedProduct);
+    }
+
+    // Pamiętaj o wstrzyknięciu ProductHistoryRepository w konstruktorze klasy!
+
+    public void cookRecipe(CookRecipeRequest request) {
+        UserProfile currentUser = currentUserService.getCurrentUser();
+
+        for (ConsumedIngredientRequest ingredient : request.consumedIngredients()) {
+            Product product = productRepository.findByIdAndUserProfile_Id(ingredient.productId(), currentUser.getId())
+                    .orElseThrow(() -> new ProductNotFoundException(ingredient.productId()));
+
+            // Odejmujemy zużytą ilość
+            double remainingQuantity = product.getQuantity() - ingredient.quantityUsed();
+
+            if (remainingQuantity <= 0) {
+                // Produkt zużyty do końca - zmieniamy status i zapisujemy historię
+                product.setQuantity(0.0);
+                product.setLifecycleStatus(ProductLifecycleStatus.CONSUMED);
+                product.setStatusChangedAt(LocalDateTime.now());
+
+                Product updatedProduct = productRepository.save(product);
+
+                // Rejestrujemy zużycie w historii (analogicznie do Twojego updateProductLifecycle)
+                ProductHistory historyRecord = ProductHistory.builder()
+                        .userProfile(currentUser)
+                        .masterProduct(updatedProduct.getMasterProduct())
+                        .lifecycleStatus(ProductLifecycleStatus.CONSUMED)
+                        .wasteReason(null)
+                        .quantity(ingredient.quantityUsed()) // Zapisujemy ile zjedzono
+                        .unit(updatedProduct.getUnit())
+                        .timestamp(LocalDateTime.now())
+                        .build();
+
+                productHistoryRepository.save(historyRecord);
+
+            } else {
+                // Produkt zużyty tylko częściowo - aktualizujemy wyłącznie ilość
+                product.setQuantity(remainingQuantity);
+                productRepository.save(product);
+            }
+        }
     }
 }
