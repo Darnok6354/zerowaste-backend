@@ -6,51 +6,39 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
-import java.nio.charset.StandardCharsets;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import jakarta.annotation.PostConstruct;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
-    private String jwkSetUri;
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+    private String issuerUri;
 
     @Value("${supabase.anon-key}")
     private String supabaseAnonKey;
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Konfigurujemy klienta HTTP, który ukradkiem doklei nagłówek "apikey"
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getInterceptors().add((request, body, execution) -> {
             request.getHeaders().add("apikey", supabaseAnonKey);
             return execution.execute(request, body);
         });
 
-        // Przekazujemy klienta z nagłówkami do głównego dekodera
-        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+        return NimbusJwtDecoder.withIssuerLocation(issuerUri)
                 .restOperations(restTemplate)
-                .jwsAlgorithm(SignatureAlgorithm.ES256)
                 .build();
     }
-
-
-
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -60,8 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
-                // Użycie domyślnej konfiguracji, która zaciągnie ustawienia z application.yml
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
 
         return http.build();
     }

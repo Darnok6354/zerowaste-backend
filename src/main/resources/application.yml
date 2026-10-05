@@ -23,7 +23,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://mpkuposrgoodxvqrticj.supabase.co/auth/v1
-          jwk-set-uri: https://mpkuposrgoodxvqrticj.supabase.co/auth/v1/jwks
+          jwk-set-uri: https://mpkuposrgoodxvqrticj.supabase.co/.well-known/jwks.json
 
   supabase:
     anon-key: ${SUPABASE_ANON_KEY}
