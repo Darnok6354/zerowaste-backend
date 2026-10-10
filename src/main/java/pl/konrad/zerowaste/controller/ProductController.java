@@ -13,6 +13,8 @@ import pl.konrad.zerowaste.domain.StorageLocation;
 import pl.konrad.zerowaste.dto.*;
 import pl.konrad.zerowaste.service.ProductService;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/products")
@@ -33,7 +35,7 @@ public class ProductController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) StorageLocation location,
             @RequestParam(required = false) ProductUnit unit,
-            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false) List<ProductStatus> statuses,
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "asc") String direction,
             @RequestParam(required = false, defaultValue = "0") int page,
@@ -43,7 +45,7 @@ public class ProductController {
                 name,
                 location,
                 unit,
-                status,
+                statuses,
                 sortBy,
                 direction,
                 page,

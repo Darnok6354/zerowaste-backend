@@ -24,6 +24,10 @@ public class UserProfile {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // NOWE POLE
+    @Column
+    private String firstName;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import pl.konrad.zerowaste.domain.Product;
 import pl.konrad.zerowaste.domain.ProductStatus;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -41,4 +44,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             ProductLifecycleStatus lifecycleStatus,
             ProductStatus status
     );
+
+    @Modifying
+    @Query("UPDATE Product p SET p.status = 'EXPIRED' WHERE p.status != 'EXPIRED' AND p.expirationDate < :today")
+    int updateExpiredProducts(@Param("today") LocalDate today);
+
+    // 2. (Opcjonalnie) Zmiana na EXPIRING_SOON dla produktów, którym zostały np. 2 dni
+    @Modifying
+    @Query("UPDATE Product p SET p.status = 'EXPIRING_SOON' WHERE p.status = 'FRESH' AND p.expirationDate BETWEEN :today AND :warningDate")
+    int updateExpiringSoonProducts(@Param("today") LocalDate today, @Param("warningDate") LocalDate warningDate);
 }

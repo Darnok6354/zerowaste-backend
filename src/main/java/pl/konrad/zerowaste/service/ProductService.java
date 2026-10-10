@@ -15,6 +15,7 @@ import pl.konrad.zerowaste.repository.ProductHistoryRepository;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +50,7 @@ public class ProductService {
             String name,
             StorageLocation location,
             ProductUnit unit,
-            ProductStatus status,
+            List<ProductStatus> status,
             String sortBy,
             String direction,
             int page,

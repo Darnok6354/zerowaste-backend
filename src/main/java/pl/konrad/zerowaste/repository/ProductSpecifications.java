@@ -6,6 +6,9 @@ import pl.konrad.zerowaste.domain.ProductStatus;
 import pl.konrad.zerowaste.domain.ProductUnit;
 import pl.konrad.zerowaste.domain.StorageLocation;
 import pl.konrad.zerowaste.domain.ProductLifecycleStatus;
+import java.util.List;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 
 import java.time.LocalDate;
 
@@ -34,32 +37,40 @@ public class ProductSpecifications {
         };
     }
 
-    public static Specification<Product> hasStatus(ProductStatus status) {
+    public static Specification<Product> hasStatus(List<ProductStatus> statuses) {
         return (root, query, cb) -> {
-            if (status == null) {
-                return null;
+            if (statuses == null || statuses.isEmpty()) {
+                return null; // Zwraca null, aby zignorować filtr, gdy nie ma statusów
             }
 
             LocalDate today = LocalDate.now();
             LocalDate expiringSoonDate = today.plusDays(3);
 
-            return switch (status) {
-                case EXPIRED -> cb.and(
-                        cb.isNotNull(root.get("expirationDate")),
-                        cb.lessThan(root.get("expirationDate"), today)
-                );
+            // Lista na warunki dla poszczególnych statusów
+            List<Predicate> statusPredicates = new ArrayList<>();
 
-                case EXPIRING_SOON -> cb.and(
-                        cb.isNotNull(root.get("expirationDate")),
-                        cb.greaterThanOrEqualTo(root.get("expirationDate"), today),
-                        cb.lessThanOrEqualTo(root.get("expirationDate"), expiringSoonDate)
-                );
+            for (ProductStatus status : statuses) {
+                switch (status) {
+                    case EXPIRED -> statusPredicates.add(cb.and(
+                            cb.isNotNull(root.get("expirationDate")),
+                            cb.lessThan(root.get("expirationDate"), today)
+                    ));
 
-                case FRESH -> cb.or(
-                        cb.isNull(root.get("expirationDate")),
-                        cb.greaterThan(root.get("expirationDate"), expiringSoonDate)
-                );
-            };
+                    case EXPIRING_SOON -> statusPredicates.add(cb.and(
+                            cb.isNotNull(root.get("expirationDate")),
+                            cb.greaterThanOrEqualTo(root.get("expirationDate"), today),
+                            cb.lessThanOrEqualTo(root.get("expirationDate"), expiringSoonDate)
+                    ));
+
+                    case FRESH -> statusPredicates.add(cb.or(
+                            cb.isNull(root.get("expirationDate")),
+                            cb.greaterThan(root.get("expirationDate"), expiringSoonDate)
+                    ));
+                }
+            }
+
+            // Łączymy wszystkie zebrane warunki logicznym LUB (OR)
+            return cb.or(statusPredicates.toArray(new Predicate[0]));
         };
     }
 
