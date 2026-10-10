@@ -99,7 +99,33 @@ public class ProductService {
         product.setExpirationDate(request.expirationDate());
         product.setLocation(request.location());
 
+        // Przeliczenie statusu na podstawie nowej daty ważności przed zapisem
+        updateProductStatusBasedOnExpiration(product);
+
         return mapToResponse(productRepository.save(product));
+    }
+
+    private void updateProductStatusBasedOnExpiration(Product product) {
+        // Pomijamy aktualizację, jeśli produkt nie ma ustawionej daty ważności
+        if (product.getExpirationDate() == null) {
+            return;
+        }
+
+        // Ignorujemy zmianę statusu, jeśli produkt został już zjedzony lub wyrzucony
+        if (product.getLifecycleStatus() != null && product.getLifecycleStatus() != ProductLifecycleStatus.ACTIVE) {
+            return;
+        }
+
+        LocalDate now = LocalDate.now();
+        LocalDate expiration = product.getExpirationDate();
+
+        if (expiration.isBefore(now)) {
+            product.setStatus(ProductStatus.EXPIRED);
+        } else if (expiration.isBefore(now.plusDays(4))) { // Odpowiada <= 2 dniom
+            product.setStatus(ProductStatus.EXPIRING_SOON);
+        } else {
+            product.setStatus(ProductStatus.FRESH);
+        }
     }
 
     public void deleteProduct(Long id) {
