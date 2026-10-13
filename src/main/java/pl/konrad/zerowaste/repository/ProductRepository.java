@@ -38,19 +38,33 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     // Pobiera wszystkie produkty użytkownika o określonym statusie cyklu życia
     List<Product> findAllByUserProfile_IdAndLifecycleStatus(Long userId, ProductLifecycleStatus lifecycleStatus);
 
-    // Pobiera produkty użytkownika po statusie cyklu życia (np. ACTIVE) oraz statusie przydatności (np. EXPIRING_SOON)
-    List<Product> findAllByUserProfile_IdAndLifecycleStatusAndStatus(
+    // ZASTĄPIONE: Pobiera produkty psujące się (data ważności między dzisiaj a podanym progiem)
+    List<Product> findByUserProfile_IdAndLifecycleStatusAndExpirationDateBetween(
             Long userId,
             ProductLifecycleStatus lifecycleStatus,
-            ProductStatus status
+            LocalDate startDate,
+            LocalDate endDate
     );
 
+    // NOWE: Pobiera produkty świeże (data ważności powyżej progu LUB brak daty ważności)
+    @Query("SELECT p FROM Product p WHERE p.userProfile.id = :userId " +
+            "AND p.lifecycleStatus = :lifecycleStatus " +
+            "AND (p.expirationDate > :thresholdDate OR p.expirationDate IS NULL)")
+    List<Product> findFreshActiveProducts(
+            @Param("userId") Long userId,
+            @Param("lifecycleStatus") ProductLifecycleStatus lifecycleStatus,
+            @Param("thresholdDate") LocalDate thresholdDate
+    );
+
+    // Opcjonalnie: Jeśli całkowicie usuwasz kolumnę "status" z bazy, możesz usunąć poniższe metody @Modifying.
+    // Zostawiam je zakomentowane jako referencję, w razie gdyby były wpięte w inny system cykliczny.
+    /*
     @Modifying
     @Query("UPDATE Product p SET p.status = 'EXPIRED' WHERE p.status != 'EXPIRED' AND p.expirationDate < :today")
     int updateExpiredProducts(@Param("today") LocalDate today);
 
-    // 2. (Opcjonalnie) Zmiana na EXPIRING_SOON dla produktów, którym zostały np. 2 dni
     @Modifying
     @Query("UPDATE Product p SET p.status = 'EXPIRING_SOON' WHERE p.status = 'FRESH' AND p.expirationDate BETWEEN :today AND :warningDate")
     int updateExpiringSoonProducts(@Param("today") LocalDate today, @Param("warningDate") LocalDate warningDate);
+    */
 }

@@ -12,6 +12,7 @@ import pl.konrad.zerowaste.dto.spoonacular.SpoonacularRecipeDto;
 import pl.konrad.zerowaste.repository.ProductRepository;
 import pl.konrad.zerowaste.dto.spoonacular.SpoonacularRecipeDetailsDto;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,8 +24,6 @@ public class RecipeService {
     private final RestClient restClient;
     private final String apiKey;
 
-    // Wstrzykujemy zależności oraz zmienne ze środowiska (application.yml)
-    // Zmieniony konstruktor (bez RestClient.Builder)
     public RecipeService(
             ProductRepository productRepository,
             CurrentUserService currentUserService,
@@ -34,31 +33,24 @@ public class RecipeService {
         this.productRepository = productRepository;
         this.currentUserService = currentUserService;
         this.apiKey = apiKey;
-
-        // NOWOŚĆ: Ręczne wywołanie statycznego buildera
         this.restClient = RestClient.builder().baseUrl(apiUrl).build();
     }
 
     public List<SpoonacularRecipeDto> getRecipesBasedOnInventory() {
         UserProfile currentUser = currentUserService.getCurrentUser();
 
-        // 1. Priorytet #1: Pobieramy produkty z lodówki (ACTIVE), które zaraz się zepsują (EXPIRING_SOON)
+        LocalDate today = LocalDate.now();
+        LocalDate expirationThreshold = today.plusDays(2);
+
+        // 1. Priorytet #1: Pobieramy produkty z lodówki (ACTIVE), które zaraz się zepsują (od dziś do +2 dni)
+        // Ignorujemy produkty już przeterminowane (data < today), żeby nie dodawać zepsutego jedzenia do przepisów
         List<Product> expiringProducts = productRepository
-                .findAllByUserProfile_IdAndLifecycleStatusAndStatus(
+                .findByUserProfile_IdAndLifecycleStatusAndExpirationDateBetween(
                         currentUser.getId(),
                         ProductLifecycleStatus.ACTIVE,
-                        ProductStatus.EXPIRING_SOON
+                        today,
+                        expirationThreshold
                 );
-
-        // --- DIAGNOSTYKA KROK 1: Czy baza coś zwraca? ---
-
-        List<Product> freshProducts = productRepository
-                .findAllByUserProfile_IdAndLifecycleStatusAndStatus(
-                        currentUser.getId(),
-                        ProductLifecycleStatus.ACTIVE,
-                        ProductStatus.FRESH
-                );
-
 
         String ingredientsParam;
 
@@ -67,21 +59,28 @@ public class RecipeService {
                     .map(p -> p.getMasterProduct().getName())
                     .distinct()
                     .collect(Collectors.joining(","));
-            // --- DIAGNOSTYKA KROK 2: Jaki string trafia do API? ---
         }
-        // 4. Jeśli nic się nie psuje, szukaj przepisów z normalnych zapasów
-        else if (!freshProducts.isEmpty()) {
-            ingredientsParam = freshProducts.stream()
-                    .map(p -> p.getMasterProduct().getName())
-                    .distinct()
-                    .collect(Collectors.joining(","));
-        }
-        // 5. Lodówka jest pusta (brak ACTIVE produktów)
         else {
-            return List.of();
+            // 2. Jeśli nic się nie psuje, szukaj przepisów ze świeżych zapasów (data > today + 2 LUB brak daty)
+            List<Product> freshProducts = productRepository
+                    .findFreshActiveProducts(
+                            currentUser.getId(),
+                            ProductLifecycleStatus.ACTIVE,
+                            expirationThreshold
+                    );
+
+            if (!freshProducts.isEmpty()) {
+                ingredientsParam = freshProducts.stream()
+                        .map(p -> p.getMasterProduct().getName())
+                        .distinct()
+                        .collect(Collectors.joining(","));
+            } else {
+                // 3. Lodówka jest pusta (brak ACTIVE produktów)
+                return List.of();
+            }
         }
 
-        // 6. Wysyłamy zapytanie do API
+        // 4. Wysyłamy zapytanie do API
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/recipes/findByIngredients")
@@ -98,7 +97,6 @@ public class RecipeService {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/recipes/{id}/information")
-                        // false, bo nie potrzebujemy dodatkowych danych o wartościach odżywczych
                         .queryParam("includeNutrition", false)
                         .build(recipeId))
                 .header("x-api-key", apiKey)

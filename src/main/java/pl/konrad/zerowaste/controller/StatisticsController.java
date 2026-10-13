@@ -1,5 +1,6 @@
 package pl.konrad.zerowaste.controller;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/statistics")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication")
 public class StatisticsController {
 
     private final StatisticsService statisticsService;
