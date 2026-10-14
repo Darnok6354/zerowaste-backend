@@ -28,9 +28,7 @@ public class Product {
     @JoinColumn(name = "user_profile_id", nullable = false)
     private UserProfile userProfile;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private ProductStatus status;
+
 
 
     @Column(name = "expiration_date")

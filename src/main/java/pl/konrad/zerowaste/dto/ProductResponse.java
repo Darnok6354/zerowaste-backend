@@ -21,7 +21,6 @@ public record ProductResponse(
         ProductUnit unit,
         LocalDate expirationDate,
         StorageLocation location,
-        ProductStatus status,
         ProductLifecycleStatus lifecycleStatus,
         String wasteReason,
         LocalDateTime statusChangedAt,

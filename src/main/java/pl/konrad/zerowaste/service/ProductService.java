@@ -41,7 +41,6 @@ public class ProductService {
                 .location(request.location())
                 .userProfile(currentUser)
                 .lifecycleStatus(ProductLifecycleStatus.ACTIVE) // Zawsze ustalamy jako ACTIVE przy dodawaniu
-                .status(calculateStatus(request.expirationDate())) // <-- TUTAJ PINA TWOJĄ LOGIKĘ
                 .build();
 
         return mapToResponse(productRepository.save(product));
@@ -116,16 +115,7 @@ public class ProductService {
             return;
         }
 
-        LocalDate now = LocalDate.now();
-        LocalDate expiration = product.getExpirationDate();
 
-        if (expiration.isBefore(now)) {
-            product.setStatus(ProductStatus.EXPIRED);
-        } else if (expiration.isBefore(now.plusDays(4))) { // Odpowiada <= 2 dniom
-            product.setStatus(ProductStatus.EXPIRING_SOON);
-        } else {
-            product.setStatus(ProductStatus.FRESH);
-        }
     }
 
     public void deleteProduct(Long id) {
@@ -149,7 +139,6 @@ public class ProductService {
                 product.getUnit(),
                 product.getExpirationDate(),
                 product.getLocation(),
-                product.getStatus(),
                 product.getLifecycleStatus(),
                 product.getWasteReason(),
                 product.getStatusChangedAt(),
