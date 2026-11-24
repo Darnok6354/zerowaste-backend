@@ -10,6 +10,29 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d zerowaste_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: zerowaste-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Zwróć uwagę na hosta "postgres" (nazwa serwisu wyżej) zamiast "localhost"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/zerowaste_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      # Jeśli masz inne zmienne środowiskowe (np. klucze API), możesz je dodać tutaj
+      # lub podpiąć plik .env przez: env_file: [.env]
 
 volumes:
   postgres_data:

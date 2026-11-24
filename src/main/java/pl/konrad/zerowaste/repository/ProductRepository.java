@@ -56,6 +56,18 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("thresholdDate") LocalDate thresholdDate
     );
 
+    // Odwrócony LIKE: Szuka produktu w lodówce, którego nazwa (masterProduct.name)
+    // jest CZĘŚCIĄ nazwy przysłanej przez Spoonaculara
+    @Query("SELECT p FROM Product p JOIN p.masterProduct mp " +
+            "WHERE p.userProfile.id = :userId " +
+            "AND p.lifecycleStatus = :status " +
+            "AND LOWER(:spoonacularName) LIKE LOWER(CONCAT('%', mp.name, '%'))")
+    List<Product> findProductsMatchingSpoonacularName(
+            @Param("userId") Long userId,
+            @Param("spoonacularName") String spoonacularName,
+            @Param("status") ProductLifecycleStatus status
+    );
+
     // Opcjonalnie: Jeśli całkowicie usuwasz kolumnę "status" z bazy, możesz usunąć poniższe metody @Modifying.
     // Zostawiam je zakomentowane jako referencję, w razie gdyby były wpięte w inny system cykliczny.
     /*
