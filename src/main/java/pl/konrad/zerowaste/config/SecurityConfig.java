@@ -27,6 +27,9 @@ public class SecurityConfig {
     @Value("${supabase.anon-key}")
     private String supabaseAnonKey;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     @Bean
     public JwtDecoder jwtDecoder() {
         RestTemplate restTemplate = new RestTemplate();
@@ -60,7 +63,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // Adres frontendu
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", frontendUrl)); // Adres frontendu
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
 
