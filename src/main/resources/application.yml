@@ -1,8 +1,6 @@
 spring:
   application:
     name: zerowaste-backend
-app:
-  frontend-url: ${FRONTEND_URL:http://localhost:3000}
 
   datasource:
     url: jdbc:postgresql://localhost:5432/zerowaste_db
@@ -45,6 +43,8 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
 
 spoonacular:
   api:
