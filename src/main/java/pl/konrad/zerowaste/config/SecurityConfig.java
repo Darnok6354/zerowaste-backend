@@ -3,6 +3,7 @@ package pl.konrad.zerowaste.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,7 +16,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -49,6 +52,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -57,15 +61,26 @@ public class SecurityConfig {
         return http.build();
     }
 
-
-
-    // Konfiguracja CORS pozwalająca na komunikację z frontendem Next.js
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", frontendUrl)); // Adres frontendu
+
+        List<String> allowedPatterns = new ArrayList<>(List.of(
+                "http://localhost:3000",
+                "https://*.vercel.app"
+        ));
+
+        if (frontendUrl != null && !frontendUrl.isBlank()) {
+            String cleanedUrl = frontendUrl.trim().replaceAll("/+$", "");
+            if (!cleanedUrl.isEmpty()) {
+                allowedPatterns.add(cleanedUrl);
+            }
+        }
+
+        configuration.setAllowedOriginPatterns(allowedPatterns);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
